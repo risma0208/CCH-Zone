@@ -149,6 +149,154 @@
 </div>
 
 <script>
+    // --- KONFIGURASI FIREBASE DENGAN URL ASIA ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyARP5C8HR0EdrdFfiHqQGCz2HshvNf_t6c",
+        authDomain: "cch-zone.firebaseapp.com",
+        databaseURL: "https://cch-zone-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "cch-zone",
+        storageBucket: "cch-zone.firebasestorage.app",
+        messagingSenderId: "666813253663",
+        appId: "1:666813253663:web:39e1b48bf63810f4384c17",
+        measurementId: "G-7W50MXWM6M"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function render(data) {
+        const list = document.getElementById('inviteList');
+        list.innerHTML = "";
+
+        if (!data || Object.keys(data).length === 0) {
+            list.innerHTML = `<p class="empty-msg">Belum ada arsip undangan. Mabar yuk! 😴</p>`;
+            return;
+        }
+
+        const invites = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        invites.forEach(item => {
+            list.innerHTML += `
+                <div class="invite-card ${item.isDone ? 'done-card' : ''}">
+                    <div class="card-header-info">
+                        <span class="date-badge"><i class="bi bi-calendar3"></i> ${item.dateLabel}</span>
+                        <small class="text-muted" style="font-size: 0.7rem;">ID: ${item.timestamp || 'New'}</small>
+                    </div>
+                    <div class="full-text-area">${item.content}</div>
+                    <div class="action-bar">
+                        <button onclick="toggleDone('${item.id}', ${item.isDone})" class="btn btn-sm ${item.isDone ? 'btn-success' : 'btn-outline-success'}">
+                            <i class="bi ${item.isDone ? 'bi-check-circle-fill' : 'bi-check-circle'}"></i> ${item.isDone ? 'SELESAI' : 'DONE'}
+                        </button>
+                        ${item.isDone ? `
+                            <button onclick="deleteItem('${item.id}')" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash3"></i> Hapus
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-secondary" disabled>
+                                <i class="bi bi-lock-fill"></i> Hapus
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Tampilkan pesan kosong di awal
+    render(null);
+
+    // Pantau data masuk dari Firebase
+    db.ref('invites').on('value', (snapshot) => {
+        render(snapshot.val());
+    });
+
+    function processInput() {
+        const fullText = document.getElementById('rawText').value;
+        if (!fullText.trim()) return alert("Teksnya kosong, Ci! ✨");
+
+        const dateMatch = fullText.match(/(\d{2})['\-\/\s](\d{2})[\s](\d{4})/);
+        let sortDate = "9999-12-31"; 
+        let displayDate = "Tanpa Tanggal";
+
+        if (dateMatch) {
+            sortDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+            displayDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+        }
+
+        db.ref('invites').push({
+            content: fullText,
+            date: sortDate,
+            dateLabel: displayDate,
+            isDone: false,
+            timestamp: Date.now()
+        });
+
+        document.getElementById('rawText').value = "";
+    }
+
+    function toggleDone(id, currentStatus) {
+        db.ref('invites/' + id).update({ isDone: !currentStatus });
+    }
+
+    function deleteItem(id) {
+        if(confirm("Hapus arsip ini?")) {
+            db.ref('invites/' + id).remove();
+        }
+    }
+</script>
+</body>
+</html>
+        .invite-card {
+            background: rgba(30, 41, 59, 0.95); border-radius: 18px; margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;
+        }
+        .card-header-info {
+            background: rgba(255, 255, 255, 0.05); padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .full-text-area {
+            padding: 15px 20px; max-height: 250px; overflow-y: auto;
+            white-space: pre-wrap; font-size: 0.85rem;
+            color: #f1f5f9; background: rgba(0,0,0,0.2);
+        }
+        .date-badge {
+            background: var(--accent-cyan); color: #0f172a;
+            padding: 3px 12px; border-radius: 20px; font-weight: bold;
+        }
+        .action-bar { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 12px; }
+        .done-card { border: 2px solid #50fa7b !important; opacity: 0.6; }
+        .empty-msg { color: var(--accent-pink); text-align: center; font-weight: bold; margin-top: 70px; text-shadow: var(--glow); }
+    </style>
+</head>
+<body>
+
+<div class="bg-animate">
+    <ul class="game-icons">
+        <li>🎮</li><li>🕹</li><li>🎮</li><li>🕹</li><li>🎮</li><li>🕹</li><li>🎮</li>
+    </ul>
+</div>
+
+<div class="group-header">
+    <img src="CCH.jpg" alt="Logo Rada" class="group-logo">
+    <h1 class="header-title">CCH ZONE</h1>
+    <p class="sub-header">
+        <i class="bi bi-controller"></i> Basecamp Undangan Mabar CCH Fams<i class="bi bi-stars"></i>
+    </p>
+</div>
+
+<div class="container">
+    <div class="input-section">
+        <label class="form-label small text-info">Paste Undangan disini:</label>
+        <textarea id="rawText" class="form-control" rows="5" placeholder="Tempel di sini..."></textarea>
+        <button onclick="processInput()" class="btn btn-save">SIMPAN KE ARSIP GAMING 🚀</button>
+    </div>
+    <div id="inviteList"></div>
+</div>
+
+<script>
     // --- FIREBASE CONFIG DARI SCREENSHOT CI ---
     const firebaseConfig = {
         apiKey: "AIzaSyARP5C8HR0EdrdFfiHqQGCz2HshvNf_t6c",
